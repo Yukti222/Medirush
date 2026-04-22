@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediRush — Paramedic AI Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --red: #e02020;
+      --red-dark: #b01515;
+      --red-light: #fff0f0;
+      --white: #ffffff;
+      --gray: #f5f5f5;
+      --text: #1a1a1a;
+      --muted: #777;
+      --border: #e0e0e0;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--gray); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      background: var(--red);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(224,32,32,0.3);
+    }
+    .nav-logo { font-family: 'Rajdhani', sans-serif; font-size: 22px; color: white; letter-spacing: 1px; }
+    .nav-logo span { opacity: 0.7; font-size: 13px; margin-left: 6px; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .nav-tab.active, .nav-tab:hover { background: rgba(255,255,255,0.3); }
+
+    /* PAGES */
+    .page { display: none; padding: 24px 16px; max-width: 640px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* CARD */
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      color: var(--red);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* FORM */
+    .form-row { margin-bottom: 14px; }
+    label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      background: white;
+      color: var(--text);
+      transition: border 0.2s;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--red); }
+    textarea { resize: vertical; min-height: 70px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* BUTTONS */
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-red { background: var(--red); color: white; }
+    .btn-red:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-outline { background: white; color: var(--red); border: 2px solid var(--red); margin-top: 10px; }
+    .btn-outline:hover { background: var(--red-light); }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1a1a;
+      color: white;
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 13px;
+      transition: transform 0.3s;
+      z-index: 999;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* PATIENT CARD */
+    .patient-card {
+      background: var(--red-light);
+      border: 1.5px solid #ffc0c0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .patient-name { font-family: 'Rajdhani', sans-serif; font-size: 22px; color: var(--red-dark); }
+    .patient-id { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-item label { color: var(--muted); font-size: 11px; }
+    .info-item p { font-size: 14px; font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-blood { background: #ffe0e0; color: var(--red-dark); }
+    .badge-allergy { background: #fff3cd; color: #856404; margin: 2px; }
+    .full-width { grid-column: 1 / -1; }
+
+    /* CHAT */
+    #chat-box {
+      height: 340px;
+      overflow-y: auto;
+      padding: 12px;
+      background: #fafafa;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .msg-user { background: var(--red); color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .msg-ai { background: white; border: 1.5px solid var(--border); align-self: flex-start; border-bottom-left-radius: 3px; }
+    .msg-system { background: #fff8e1; border: 1px solid #ffe082; align-self: center; font-size: 12px; color: #666; text-align: center; border-radius: 8px; }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input { flex: 1; }
+    .send-btn {
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .send-btn:hover { background: var(--red-dark); }
+
+    /* QUICK PROMPTS */
+    .quick-prompts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .qp-btn {
+      background: var(--red-light);
+      border: 1px solid #ffc0c0;
+      color: var(--red-dark);
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.2s;
+    }
+    .qp-btn:hover { background: #ffd0d0; }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+    /* PATIENT ID DISPLAY */
+    .pid-box {
+      background: var(--red);
+      color: white;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .pid-box p { font-size: 12px; opacity: 0.8; }
+    .pid-box h2 { font-family: 'Rajdhani', sans-serif; font-size: 28px; letter-spacing: 2px; }
+
+    .typing { color: var(--muted); font-size: 13px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">🚑 MediRush <span>Paramedic AI</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('register')">Register</button>
+    <button class="nav-tab" onclick="showPage('search')">Search</button>
+    <button class="nav-tab" onclick="showPage('ai')">AI Assistant</button>
+  </div>
+</nav>
+
+<!-- PAGE 1: REGISTER -->
+<div class="page active" id="page-register">
+  <div class="card">
+    <div class="card-title">🏥 Register Patient</div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Full Name *</label>
+        <input type="text" id="r-name" placeholder="Patient name"/>
+      </div>
+      <div class="form-row">
+        <label>Age *</label>
+        <input type="number" id="r-age" placeholder="Age"/>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Phone Number</label>
+        <input type="tel" id="r-phone" placeholder="10-digit number"/>
+      </div>
+      <div class="form-row">
+        <label>Aadhaar (last 4 digits)</label>
+        <input type="text" id="r-aadhaar" maxlength="4" placeholder="XXXX"/>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Blood Group *</label>
+        <select id="r-blood">
+          <option value="">Select</option>
+          <option>A+</option><option>A-</option>
+          <option>B+</option><option>B-</option>
+          <option>O+</option><option>O-</option>
+          <option>AB+</option><option>AB-</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Gender</label>
+        <select id="r-gender">
+          <option value="">Select</option>
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Allergies</label>
+      <input type="text" id="r-allergies" placeholder="e.g. Penicillin, Peanuts (comma separated)"/>
+    </div>
+    <div class="form-row">
+      <label>Chronic Diseases</label>
+      <input type="text" id="r-diseases" placeholder="e.g. Diabetes, Hypertension"/>
+    </div>
+    <div class="form-row">
+      <label>Current Medicines</label>
+      <textarea id="r-medicines" placeholder="e.g. Metformin 500mg, Aspirin 75mg"></textarea>
+    </div>
+    <button class="btn btn-red" onclick="registerPatient()">💾 Save Patient Profile</button>
+  </div>
+</div>
+
+<!-- PAGE 2: SEARCH -->
+<div class="page" id="page-search">
+  <div class="card">
+    <div class="card-title">🔍 Find Patient</div>
+    <div class="form-row">
+      <label>Patient ID</label>
+      <input type="text" id="s-id" placeholder="Enter Patient ID (e.g. MR-1234)"/>
+    </div>
+    <button class="btn btn-red" onclick="searchPatient()">🔎 Search</button>
+  </div>
+  <div id="search-result"></div>
+</div>
+
+<!-- PAGE 3: AI ASSISTANT -->
+<div class="page" id="page-ai">
+  <div id="ai-patient-info"></div>
+  <div class="card">
+    <div class="card-title">🤖 Gemini AI Assistant</div>
+    <div class="quick-prompts">
+      <button class="qp-btn" onclick="quickPrompt('Patient is unconscious, not responding')">Unconscious</button>
+      <button class="qp-btn" onclick="quickPrompt('Patient has severe chest pain and breathlessness')">Chest Pain</button>
+      <button class="qp-btn" onclick="quickPrompt('Patient is bleeding heavily from a wound')">Heavy Bleeding</button>
+      <button class="qp-btn" onclick="quickPrompt('Patient is having a seizure')">Seizure</button>
+      <button class="qp-btn" onclick="quickPrompt('Patient is having an allergic reaction')">Allergy Reaction</button>
+    </div>
+    <div id="chat-box">
+      <div class="msg msg-system">👋 Load a patient first via Search, then describe their condition below for AI guidance.</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Describe patient condition..." onkeydown="if(event.key==='Enter') sendMessage()"/>
+      <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbModules = { collection, addDoc, query, where, getDocs };
+</script>
+
+<script>
+  const GEMINI_KEY = "YOUR_GEMINI_API_KEY";
+  let currentPatient = null;
+
+  // NAVIGATION
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // TOAST
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // GENERATE PATIENT ID
+  function genId() {
+    return 'MR-' + Math.floor(1000 + Math.random() * 9000);
+  }
+
+  // REGISTER PATIENT
+  window.registerPatient = async function() {
+    const name = document.getElementById('r-name').value.trim();
+    const blood = document.getElementById('r-blood').value;
+    if (!name || !blood) { showToast('⚠️ Name and Blood Group required!'); return; }
+
+    const pid = genId();
+    const patient = {
+      pid,
+      name,
+      age: document.getElementById('r-age').value,
+      phone: document.getElementById('r-phone').value,
+      aadhaar: document.getElementById('r-aadhaar').value,
+      blood,
+      gender: document.getElementById('r-gender').value,
+      allergies: document.getElementById('r-allergies').value,
+      diseases: document.getElementById('r-diseases').value,
+      medicines: document.getElementById('r-medicines').value,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const { collection, addDoc } = window._fbModules;
+      await addDoc(collection(window._db, 'patients'), patient);
+      showToast('✅ Patient saved! ID: ' + pid);
+      // Show patient ID
+      document.getElementById('page-register').insertAdjacentHTML('afterbegin',
+        `<div class="pid-box"><p>Patient Registered Successfully!</p><h2>${pid}</h2><p>Save this ID for emergency access</p></div>`
+      );
+      // Clear form
+      ['r-name','r-age','r-phone','r-aadhaar','r-allergies','r-diseases','r-medicines'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('r-blood').value = '';
+    } catch(e) {
+      showToast('❌ Error: ' + e.message);
+    }
+  }
+
+  // SEARCH PATIENT
+  window.searchPatient = async function() {
+    const id = document.getElementById('s-id').value.trim().toUpperCase();
+    if (!id) { showToast('Enter a Patient ID'); return; }
+
+    const resultDiv = document.getElementById('search-result');
+    resultDiv.innerHTML = '<div class="card"><p class="typing">Searching...</p></div>';
+
+    try {
+      const { collection, query, where, getDocs } = window._fbModules;
+      const q = query(collection(window._db, 'patients'), where('pid', '==', id));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        resultDiv.innerHTML = '<div class="card"><div class="empty"><div class="empty-icon">🔍</div><p>No patient found with ID: ' + id + '</p></div></div>';
+        return;
+      }
+
+      const p = snap.docs[0].data();
+      currentPatient = p;
+
+      const allergiesBadges = p.allergies
+        ? p.allergies.split(',').map(a => `<span class="badge badge-allergy">${a.trim()}</span>`).join('')
+        : '<span style="color:var(--muted)">None</span>';
+
+      resultDiv.innerHTML = `
+        <div class="patient-card">
+          <div class="patient-name">${p.name}</div>
+          <div class="patient-id">ID: ${p.pid} • ${p.age} yrs • ${p.gender || 'N/A'}</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Blood Group</label>
+              <p><span class="badge badge-blood">${p.blood}</span></p>
+            </div>
+            <div class="info-item">
+              <label>Phone</label>
+              <p>${p.phone || 'N/A'}</p>
+            </div>
+            <div class="info-item full-width">
+              <label>Allergies</label>
+              <p>${allergiesBadges}</p>
+            </div>
+            <div class="info-item full-width">
+              <label>Chronic Diseases</label>
+              <p>${p.diseases || 'None'}</p>
+            </div>
+            <div class="info-item full-width">
+              <label>Current Medicines</label>
+              <p>${p.medicines || 'None'}</p>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-red" onclick="loadToAI()">🤖 Open AI Assistant for this Patient</button>
+      `;
+      showToast('✅ Patient found!');
+    } catch(e) {
+      resultDiv.innerHTML = '<div class="card"><p style="color:red">Error: ' + e.message + '</p></div>';
+    }
+  }
+
+  // LOAD PATIENT TO AI
+  window.loadToAI = function() {
+    if (!currentPatient) return;
+    const p = currentPatient;
+    document.getElementById('ai-patient-info').innerHTML = `
+      <div class="patient-card">
+        <div class="patient-name">${p.name}</div>
+        <div class="patient-id">${p.pid} • Blood: <strong>${p.blood}</strong> • Age: ${p.age}</div>
+        <div style="font-size:13px; margin-top:6px;">
+          <strong>Allergies:</strong> ${p.allergies || 'None'} &nbsp;|&nbsp;
+          <strong>Diseases:</strong> ${p.diseases || 'None'} &nbsp;|&nbsp;
+          <strong>Medicines:</strong> ${p.medicines || 'None'}
+        </div>const GEMINI_KEY = 'AAPKI_API_KEY_YAHAN_LIKHO';
+      const GEMINI_KEY = prompt("Please enter your Gemini API Key to start:");
+    document.getElementById('chat-box').innerHTML = `<div class="msg msg-system">✅ Patient ${p.name} loaded. Describe their current condition for AI guidance.</div>`;
+    showPage('ai');
+    document.querySelectorAll('.nav-tab')[2].classList.add('active');
+    document.querySelectorAll('.nav-tab')[1].classList.remove('active');
+  }
+
+  // QUICK PROMPT
+  window.quickPrompt = function(text) {
+    document.getElementById('chat-input').value = text;
+  }
+
+  // SEND MESSAGE TO GEMINI
+  window.sendMessage = async function() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML += `<div class="msg msg-user">${msg}</div>`;
+    input.value = '';
+    chatBox.innerHTML += `<div class="msg msg-ai typing" id="typing-indicator">⏳ Thinking...</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Build context from patient
+    let context = '';
+    if (currentPatient) {
+      const p = currentPatient;
+      context = `PATIENT INFO:\nName: ${p.name}, Age: ${p.age}, Blood Group: ${p.blood}, Gender: ${p.gender || 'Unknown'}\nAllergies: ${p.allergies || 'None'}\nChronic Diseases: ${p.diseases || 'None'}\nCurrent Medicines: ${p.medicines || 'None'}\n\n`;
+    }
+
+    const prompt = `You are an emergency medical AI assistant helping a paramedic in an ambulance in India. Give clear, step-by-step, practical guidance. Be concise and use simple language. Always mention safety precautions.\n\n${context}PARAMEDIC REPORTS: ${msg}\n\nProvide immediate action steps:`;
+
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const data = await res.json();
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI.';
+      document.getElementById('typing-indicator').remove();
+      chatBox.innerHTML += `<div class="msg msg-ai">${reply}</div>`;
+    } catch(e) {
+      document.getElementById('typing-indicator').remove();
+      chatBox.innerHTML += `<div class="msg msg-ai" style="color:red">❌ Error: Check your Gemini API key.</div>`;
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+</script>
+</body>
+</html>
